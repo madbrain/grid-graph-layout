@@ -1,7 +1,5 @@
 package com.github.madbrain.graphlayout
 
-import scala.util.Random
-
 object Launcher {
 
   def main(args: Array[String]) {
@@ -14,16 +12,13 @@ object Launcher {
 
     implicit val helper = new NodeHelper[String] {
       override def isDummy(node: String) = node.startsWith("N")
+      override def createDummy(nodes: Set[String]): String = s"N${nodes.size}"
     }
 
-    implicit def dummyNodeCreation(nodes: Set[String]): String = s"N${nodes.size}"
-
     val sizeProvider = new SizeProvider[String] {
-      private val rand = new Random()
-      override def bounds(node: String): Size = if (node.startsWith("N"))
+      override def bounds(node: String): Size = if (helper.isDummy(node))
         Size(0, 0)
       else
-//        Size(40 + rand.nextInt(40), 40 + rand.nextInt(40))
         Size(40, 40)
 
       override def horizontalMargin = 20
@@ -31,15 +26,9 @@ object Launcher {
       override def verticalMargin = 20
     }
 
-    val dag = DAGTransformer(graph)
-    val ranks = TopologicalSorter(dag)
-    val (lines, dummies) = LinesBuilder(dag, ranks)
-    val (completeGraph, completeRanks, completeLines, edgeMap) = DummyNodesInserter(dag, ranks, lines, dummies)
-    val correctedRanks = OverlapCorrecter(completeGraph, completeRanks, completeLines)
+    val context = GraphLayouter.layout(graph, sizeProvider)
 
-    val context = DrawingContext(completeGraph, correctedRanks, completeLines, edgeMap, sizeProvider)
-
-    SVGGenerator.generate(context)
+    SVGGenerator.generate(context, "out.svg")
   }
 
 }

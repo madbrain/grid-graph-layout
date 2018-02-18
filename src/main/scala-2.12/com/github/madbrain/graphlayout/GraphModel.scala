@@ -16,5 +16,6 @@ case class Graph[T](nodes: Seq[T], edges: Seq[Edge[T]]) {
 }
 
 trait NodeHelper[T] {
-  def isDummy(node: T) = false
+  def isDummy(node: T): Boolean
+  def createDummy(nodes: Set[T]): T
 }

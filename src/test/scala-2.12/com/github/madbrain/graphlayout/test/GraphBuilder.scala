@@ -1,36 +1,32 @@
 package com.github.madbrain.graphlayout.test
 
-import com.github.madbrain.graphlayout.{Graph, NormalEdge, Edge}
+import com.github.madbrain.graphlayout.{Edge, Graph, NormalEdge}
 import org.scalacheck.Gen
-
-import scala.util.Random
 
 object GraphBuilder {
 
-  def buildGraph(n: Int, m: Int) = {
-    var nodes = Seq[String]("0")
-    var edges = Seq[Edge[String]]()
-    while (nodes.size < n) {
-      val node = nodes.size.toString
-      val other = nodes(Random.nextInt(nodes.size))
-      edges = edges :+ NormalEdge(node, other)
-      nodes = nodes :+ node
+  def makeEdges(i: Int) = {
+    val n = i.toString
+    for {
+      max <- Gen.choose(1, 3)
+      others <- Gen.pick(max min i, 0.until(i))
+      seq <- Gen.sequence[Seq[Edge[String]], Edge[String]](others.map(other => {
+        Gen.oneOf(NormalEdge(other.toString, n), NormalEdge(n, other.toString))
+      }))
+    } yield {
+     seq
     }
-    while (edges.size < m) {
-      val n1 = nodes(Random.nextInt(nodes.size))
-      val n2 = nodes(Random.nextInt(nodes.size))
-      val edge = NormalEdge(n1, n2)
-      if (n1 != n2 && !edges.contains(edge)) {
-        edges = edges :+ edge
-      }
-    }
-    Graph(nodes, edges)
   }
 
-  val genGraph = for {
+  def genEdgesForNodes(n: Int) = {
+    Gen.sequence[Seq[Seq[Edge[String]]], Seq[Edge[String]]](
+      1.to(n).map(i => makeEdges(i)))
+  }
+
+  val genGraph: Gen[Graph[String]] = for {
     n <- Gen.choose(10, 20)
-    m <- Gen.choose(n*2, n*3)
+    edges <- genEdgesForNodes(n)
   } yield {
-    buildGraph(n, m)
+    Graph(0.to(n).map(_.toString), edges.flatten)
   }
 }
